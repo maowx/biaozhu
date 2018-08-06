@@ -1,0 +1,207 @@
+
+<!doctype html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1" /> 
+<meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+<link rel="stylesheet" href="static/css/style.css">
+<link rel="stylesheet" href="static/css/pc_style.css">
+<link rel="stylesheet" href="static/css/mb_style.css">
+<link rel="stylesheet" href="static/css/swiper.min.css">
+<link rel="stylesheet" href="static/css/animate.min.css">
+<title>图像对比</title>
+</head>
+<script src="static/js/jquery-3.2.1.js"></script>
+<script src="static/js/jquery-ui.min.js"></script>
+<style>
+    h1{
+        font-size: 18px;
+        color: #000;
+        line-height: 50px;
+        padding: 0;
+        margin: 0;      
+    }
+    .no_img {
+        width: 90%;
+        position: fixed;
+        top: 25%;
+        left: 50%;
+        margin-left: -45%;
+        text-align: Center;
+    }
+</style>
+
+
+<body>
+<!--out_btn-->
+<div class='out_btn'>退出登录</div>
+<!--contrast_title-->
+<ul class='contrast_title'>
+    <li>当前比对次数：<span>{{ useCount }}</span></li>
+    <li>请问以下两幅图中哪幅图像更优？ <span class="out_time"></span></li>
+	
+	<div class='clear'></div>
+</ul>
+
+<!--contrast_box-->
+<ul class='contrast_box'>
+    	<li>
+            <input type="hidden" name="img0" value="{{ pic1.id }}">
+		<img src="{{ pic1.picture.url }}" class='contrast_photo' id="pic1">
+		<div class='contrast_lay'></div>
+	</li>
+    	<li>
+            <input type="hidden" name="img1" value="{{ pic2.id }}">
+		<img src="{{ pic2.picture.url }}" class='contrast_photo' id="pic2">
+		<div class='contrast_lay'></div>
+	</li>
+    </ul>
+<div class='clear'></div>
+
+<!--choose_box-->
+<div class='choose_big_box'>
+   
+	<ul class='choose_box'>
+		<li><p>左图更优</p></li>
+		<li><p>两图相近</p></li>
+		<li><p>右图更优</p></li>
+		<div class='clear'></div>
+	</ul>
+    
+    <a  onclick="backPic()">上一步</a>
+</div>
+
+<!--hide_photo-->
+<div class='hide_photo'>
+            <ul class='photo_lay_box'>
+		<li class='photo_lay'>
+			<img src="{{ pic1.picture.url }}" class='photo_lay_img' id="hide_pic1">
+			<img src="static/image/close.png" class='photo_lay_icon'>
+		</li>
+	</ul>
+            <ul class='photo_lay_box'>
+		<li class='photo_lay'>
+			<img src="{{ pic2.picture.url }}" class='photo_lay_img' id="hide_pic2">
+			<img src="static/image/close.png" class='photo_lay_icon'>
+		</li>
+	</ul>
+    	
+</div>
+
+</body>
+{#<script type="text/javascript" src="static/js/biaozhu.js"></script>#}
+{#<script src="/themes/simpleboot3/public/assets/new/js/all_js.js"></script>#}
+
+<!--[if lt IE 9]><script src="/themes/simpleboot3/public/assets/new/js/respond.js" type="text/javascript" charset="utf-8"></script><![endif]-->
+
+<script>
+//鼠标经过显示遮罩层
+$('.contrast_box li').mouseover(function(){
+	$(this).children('.contrast_lay').show();
+	$(this).siblings().children('.contrast_lay').hide;
+})
+$('.contrast_box li').mouseleave(function(){
+	$(this).children('.contrast_lay').hide();
+});
+
+//手机版点击弹出层效果
+$(".photo_lay_box").hide();
+
+$(document).on('click touchstart', function() { 
+    $('.photo_lay_box').hide();
+});
+
+$(".contrast_box li").on('click touchstart', function (event) {
+    event.stopPropagation();
+});
+
+var $menu_li = $(".contrast_box li");
+$menu_li.click(function(){ 
+var index = $menu_li.index( $(this) ); 
+$(".photo_lay_box").eq(index).show().siblings().hide(); 
+}) 
+    
+//15秒后自动跳转
+var url = '';
+if (url != "#") {
+    timer = setInterval('next_page()',1000);
+}
+
+
+
+var maxtime = {{ max_time }}; //按秒计算，自己调整!
+//var maxtime = '100';
+function next_page(){
+    if (maxtime >= 0) {
+        minutes = Math.floor(maxtime / 60);
+        seconds = Math.floor(maxtime % 60);
+        msg = "剩余" + minutes + "分" + seconds + "秒";
+        $('.out_time').html(msg);
+
+            --maxtime;
+    } else {
+        clearInterval(timer);
+        window.location.reload();
+        //location.href="/portal/index/index.html";
+    }
+}
+
+
+
+$('.choose_box li p').click(function(){
+    if ($(this).html() == '左图更优') {
+        var itype = 1;
+    } 
+    if ($(this).html() == '两图相近') {
+        var itype = 3;
+    }
+    if ($(this).html() == '右图更优') {
+        var itype = 2;
+    }
+    var o_time = {{ max_time }} - maxtime;
+     var request = {
+        userID:{{ userID }},
+        usetime:o_time,
+        left:$("input[name='img0']").val(),
+        right:$("input[name='img1']").val(),
+        choice:itype
+    }
+    if ($('input[name=img0]').val()=={{ last1.id }} && $('input[name=img1]').val()=={{ last2.id }}){
+        var updateRequest={
+            id:{{ lastIndex }},
+            usetime:o_time,
+            choice:itype
+        }
+        $.post('/update_choice/',updateRequest,function () {
+                window.location.reload();
+        })
+    }
+    else {
+        $.post('/insert_choice/',request,function () {
+            window.location.reload();
+        });
+    }
+});
+
+$('.out_btn').click(function(){
+   window.location.href="";
+});
+
+//查看上一次选择
+function backPic() {
+    if (!{{ useCount }}){
+        window.location.reload();
+    }
+    else{
+        $('input[name=img0]').attr('value',{{ last1.id }});
+        $('input[name=img1]').attr('value',{{ last2.id }});
+        $("#pic1").attr('src','{{ last1.picture.url }}');
+        $("#pic2").attr('src','{{ last2.picture.url }}');
+        $("#hide_pic1").attr('src','{{ last1.picture.url }}');
+        $("#hide_pic2").attr('src','{{ last2.picture.url }}');
+    }
+
+}
+</script>
+
+</html>
